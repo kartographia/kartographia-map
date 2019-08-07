@@ -36,6 +36,7 @@ public class MapTile {
 
 
     private static DecimalFormat df = new DecimalFormat("#.##");
+    static{ df.setMaximumFractionDigits(8); }
 
 
 
@@ -47,18 +48,23 @@ public class MapTile {
                      int width, int height, int srid){
 
 
-        df.setMaximumFractionDigits(8);
 
         this.srid = srid;
         if (srid==3857){
 
 
-
-          //Get wkt
+          //Convert coordinates to lat/lon
             north = getLat(maxY);
             south = getLat(minY);
             east = getLon(maxX);
             west = getLon(minX);
+
+
+          //Validate Coordinates
+            if (!valid(west, south, east, north)) throw new IllegalArgumentException();
+
+
+          //Set wkt
             String NE = df.format(east) + " " + df.format(north);
             String SE = df.format(east) + " " + df.format(south);
             String SW = df.format(west) + " " + df.format(south);
@@ -80,7 +86,7 @@ public class MapTile {
 
 
           //Validate Coordinates
-            if (validate(minX, minY, maxX, maxY)==false) throw new IllegalArgumentException();
+            if (!valid(minX, minY, maxX, maxY)) throw new IllegalArgumentException();
 
 
 
@@ -226,8 +232,19 @@ public class MapTile {
     public void addPoint(double lat, double lon, Color color, int size){
 
       //Get center point
-        double x = x(lon);
-        double y = y(lat);
+        double x;
+        double y;
+        if (srid == 3857){
+            x = x(getX(lon));
+            y = y(getY(lat));
+        }
+        else if (srid == 4326){
+            x = x(lon);
+            y = y(lat);
+        }
+        else{
+            throw new IllegalArgumentException("Unsupported projection");
+        }
 
 
       //Get upper left coordinate
@@ -287,7 +304,7 @@ public class MapTile {
   //**************************************************************************
   /** Used to validate coordinates used to invoke this class
    */
-    private boolean validate(double minX, double minY, double maxX, double maxY){
+    private boolean valid(double minX, double minY, double maxX, double maxY){
         if (minX > maxX || minY > maxY) return false;
         if (minX < -180 || maxX < -180 || maxX > 180 || minX > 180) return false;
         if (minY < -90 || maxY < -90 || maxY > 90 || minY > 90) return false;
