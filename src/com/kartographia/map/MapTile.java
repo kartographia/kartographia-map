@@ -229,7 +229,7 @@ public class MapTile {
   //**************************************************************************
   /** Used to add a point to the image
    */
-    public void addPoint(double lat, double lon, Color color, int size){
+    public void addPoint(double lat, double lon, Color color, double size){
 
       //Get center point
         double x;
@@ -248,14 +248,14 @@ public class MapTile {
 
 
       //Get upper left coordinate
-        double r = (double)size/2d;
+        double r = size/2d;
         x = x-r;
         y = y-r;
 
 
       //Render circle
         g2d.setColor(color);
-        g2d.fillOval(cint(x), cint(y), size, size);
+        g2d.fillOval(cint(x), cint(y), cint(size), cint(size));
         g2d.setColor(Color.BLACK);
     }
 
