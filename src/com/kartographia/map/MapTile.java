@@ -5,7 +5,7 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.text.DecimalFormat;
-
+import java.math.BigDecimal;
 
 //******************************************************************************
 //**  MapTile
@@ -273,8 +273,26 @@ public class MapTile {
 
         for (int i=0; i<coordinates.length; i++){
             Coordinate coordinate = coordinates[i];
-            xPoints[i] = cint(x(coordinate.x));
-            yPoints[i] = cint(y(coordinate.y));
+            //xPoints[i] = cint(x(coordinate.x));
+            //yPoints[i] = cint(y(coordinate.y));
+
+            double x;
+            double y;
+            if (srid == 3857){
+                x = x(getX(coordinate.x));
+                y = y(getY(coordinate.y));
+            }
+            else if (srid == 4326){
+                x = x(coordinate.x);
+                y = y(coordinate.y);
+            }
+            else{
+                throw new IllegalArgumentException("Unsupported projection");
+            }
+
+
+            xPoints[i] = cint(x);
+            yPoints[i] = cint(y);
         }
 
 
@@ -282,9 +300,10 @@ public class MapTile {
             g2d.setColor(fillColor);
             g2d.fillPolygon(xPoints, yPoints, coordinates.length);
         }
-        g2d.setColor(lineColor);
-        g2d.drawPolyline(xPoints, yPoints, coordinates.length);
-
+        if (lineColor!=null){
+            g2d.setColor(lineColor);
+            g2d.drawPolyline(xPoints, yPoints, coordinates.length);
+        }
     }
 
 
@@ -428,8 +447,50 @@ public class MapTile {
 
 
   //**************************************************************************
+  //** getTileCoordinate
+  //**************************************************************************
+  /** Returns the x,y coordinate of a map tile. Credit:
+   *  https://github.com/chriswhong/map-tile-functions/blob/master/latLngToTileXY.js
+   */
+    public static int[] getTileCoordinate(double lat, double lng, int zoom){
+
+        double latitude = clip(lat, -85.05112878, 85.05112878);
+        double longitude = clip(lng, -180, 180);
+
+
+        double x = (longitude + 180.0) / 360.0 * (1 << zoom);
+        double y = (1.0 - Math.log(Math.tan(latitude * Math.PI / 180.0) + 1.0 / Math.cos(lat* Math.PI / 180)) / Math.PI) / 2.0 * (1 << zoom);
+
+        int tilex  = trunc(x);
+        int tiley  = trunc(y);
+
+        return new int[]{tilex, tiley};
+    }
+
+
+    private static double clip(double n, double minValue, double maxValue){
+        return Math.min(Math.max(n, minValue), maxValue);
+    }
+
+
+  //**************************************************************************
+  //** trunc
+  //**************************************************************************
+  /** Emulates the Math.trunc() function in JavaScript. Returns the integer
+   *  part of a floating-point number by removing the fractional digits. In
+   *  other words, the function cuts off the dot and the digits to the right
+   *  of it.
+   */
+    private static int trunc(double n){
+        return new BigDecimal(n).toBigInteger().intValue();
+    }
+
+
+  //**************************************************************************
   //** cint
   //**************************************************************************
+  /** Converts a double to an integer. Rounds the double to the nearest int.
+   */
     private int cint(Double d){
         return (int)Math.round(d);
     }
@@ -438,6 +499,8 @@ public class MapTile {
   //**************************************************************************
   //** diff
   //**************************************************************************
+  /** Returns the difference between to numbers
+   */
     public static double diff(double a, double b){
         double x = a-b;
         if (x<0) x = -x;
