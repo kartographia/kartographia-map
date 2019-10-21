@@ -6,6 +6,7 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.text.DecimalFormat;
 import java.math.BigDecimal;
+import java.util.*;
 
 //******************************************************************************
 //**  MapTile
@@ -40,6 +41,8 @@ public class MapTile {
 
 
 
+    private static PrecisionModel precisionModel = new PrecisionModel();
+    private static GeometryFactory geometryFactory = new GeometryFactory(precisionModel, 4326);
 
   //**************************************************************************
   //** Constructor
@@ -443,6 +446,73 @@ public class MapTile {
         //return Math.atan(Math.exp(lat * Math.PI / 20037508.34)) * 360 / Math.PI - 90;
         double y = Math.log( Math.tan((90 + lat) * Math.PI / 360.0 )) / (Math.PI / 180.0);
         return y * originShift / 180.0;
+    }
+
+
+  //**************************************************************************
+  //** getIntersectingTiles
+  //**************************************************************************
+  /** Returns an array of x,y map tile coordinates that intersect a given
+   *  geometry
+   */
+    public static ArrayList<int[]> getIntersectingTiles(Geometry geom, int z){
+        Envelope env = geom.getEnvelopeInternal();
+
+        int[] ul = MapTile.getTileCoordinate(env.getMaxY(), env.getMinX(), z);
+        int[] lr = MapTile.getTileCoordinate(env.getMinY(), env.getMaxX(), z);
+
+        int minX = ul[0];
+        int minY = ul[1];
+        int maxX = lr[0];
+        int maxY = lr[1];
+
+        ArrayList<int[]> tiles = new ArrayList<>();
+        for (int y=minY; y<=maxY; y++){
+            for (int x=minX; x<=maxX; x++){
+                Geometry g = getTileGeometry(x,y,z);
+                if (g.intersects(geom)){
+                    tiles.add(new int[]{x,y});
+                }
+            }
+        }
+
+        return tiles;
+    }
+
+
+  //**************************************************************************
+  //** getTileGeometry
+  //**************************************************************************
+  /** Returns a JTS Geometry for a given tile
+   */
+    public static Geometry getTileGeometry(int x, int y, int z){
+        double north = tile2lat(y, z);
+        double south = tile2lat(y + 1, z);
+        double west = tile2lon(x, z);
+        double east = tile2lon(x + 1, z);
+
+
+        Coordinate ne = new Coordinate(east, north);
+        Coordinate se = new Coordinate(east, south);
+        Coordinate sw = new Coordinate(west, south);
+        Coordinate nw = new Coordinate(west, north);
+
+
+        Coordinate[] coordinates = new Coordinate[]{
+            sw, se, ne, nw, sw
+        };
+
+        return geometryFactory.createPolygon(coordinates);
+    }
+
+
+    private static double tile2lon(int x, int z) {
+        return x / Math.pow(2.0, z) * 360.0 - 180;
+    }
+
+    private static double tile2lat(int y, int z) {
+        double n = Math.PI - (2.0 * Math.PI * y) / Math.pow(2.0, z);
+        return Math.toDegrees(Math.atan(Math.sinh(n)));
     }
 
 
