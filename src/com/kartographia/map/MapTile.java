@@ -226,6 +226,34 @@ public class MapTile {
         g2d.setColor(org);
     }
 
+    
+  //**************************************************************************
+  //** addPixel
+  //**************************************************************************
+  /** Used to add a pixel to the image
+   */
+    public void addPixel(double lat, double lon, Color color){
+
+      //Get center point
+        double x;
+        double y;
+        if (srid == 3857){
+            x = x(getX(lon));
+            y = y(getY(lat));
+        }
+        else if (srid == 4326){
+            x = x(lon);
+            y = y(lat);
+        }
+        else{
+            throw new IllegalArgumentException("Unsupported projection");
+        }
+
+        g2d.setColor(color);
+        g2d.fillRect(cint(x), cint(y), 1, 1);
+        g2d.setColor(Color.BLACK);
+    }
+
 
   //**************************************************************************
   //** addPoint
@@ -456,10 +484,10 @@ public class MapTile {
    *  geometry
    */
     public static ArrayList<int[]> getIntersectingTiles(Geometry geom, int z){
-        Envelope env = geom.getEnvelopeInternal();
+        Envelope box = geom.getEnvelopeInternal();
 
-        int[] ul = MapTile.getTileCoordinate(env.getMaxY(), env.getMinX(), z);
-        int[] lr = MapTile.getTileCoordinate(env.getMinY(), env.getMaxX(), z);
+        int[] ul = MapTile.getTileCoordinate(box.getMaxY(), box.getMinX(), z);
+        int[] lr = MapTile.getTileCoordinate(box.getMinY(), box.getMaxX(), z);
 
         int minX = ul[0];
         int minY = ul[1];
@@ -506,11 +534,11 @@ public class MapTile {
     }
 
 
-    private static double tile2lon(int x, int z) {
+    public static double tile2lon(int x, int z) {
         return x / Math.pow(2.0, z) * 360.0 - 180;
     }
 
-    private static double tile2lat(int y, int z) {
+    public static double tile2lat(int y, int z) {
         double n = Math.PI - (2.0 * Math.PI * y) / Math.pow(2.0, z);
         return Math.toDegrees(Math.atan(Math.sinh(n)));
     }
