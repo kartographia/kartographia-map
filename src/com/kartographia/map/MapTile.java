@@ -226,7 +226,7 @@ public class MapTile {
         g2d.setColor(org);
     }
 
-    
+
   //**************************************************************************
   //** addPixel
   //**************************************************************************
@@ -484,26 +484,32 @@ public class MapTile {
    *  geometry
    */
     public static ArrayList<int[]> getIntersectingTiles(Geometry geom, int z){
-        Envelope box = geom.getEnvelopeInternal();
-
-        int[] ul = MapTile.getTileCoordinate(box.getMaxY(), box.getMinX(), z);
-        int[] lr = MapTile.getTileCoordinate(box.getMinY(), box.getMaxX(), z);
-
-        int minX = ul[0];
-        int minY = ul[1];
-        int maxX = lr[0];
-        int maxY = lr[1];
-
         ArrayList<int[]> tiles = new ArrayList<>();
-        for (int y=minY; y<=maxY; y++){
-            for (int x=minX; x<=maxX; x++){
-                Geometry g = getTileGeometry(x,y,z);
-                if (g.intersects(geom)){
-                    tiles.add(new int[]{x,y});
+        if (geom instanceof Point){
+            Point point = (Point) geom;
+            tiles.add(getTileCoordinate(point.getY(), point.getX(), z));
+        }
+        else{
+            Envelope box = geom.getEnvelopeInternal();
+
+            int[] ul = getTileCoordinate(box.getMaxY(), box.getMinX(), z);
+            int[] lr = getTileCoordinate(box.getMinY(), box.getMaxX(), z);
+
+            int minX = ul[0];
+            int minY = ul[1];
+            int maxX = lr[0];
+            int maxY = lr[1];
+
+
+            for (int y=minY; y<=maxY; y++){
+                for (int x=minX; x<=maxX; x++){
+                    Geometry g = getTileGeometry(x,y,z);
+                    if (g.intersects(geom)){
+                        tiles.add(new int[]{x,y});
+                    }
                 }
             }
         }
-
         return tiles;
     }
 
