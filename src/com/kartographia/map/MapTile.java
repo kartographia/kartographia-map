@@ -122,7 +122,7 @@ public class MapTile {
 
           //Compute pixelsPerDeg
             resX = ((double) width)  / (maxX-minX);
-            resY = ((double) height) / (minY-maxY);//(maxY-minY);
+            resY = ((double) height) / (minY-maxY);
         }
         else{
             throw new IllegalArgumentException("Unsupported projection");
@@ -427,6 +427,25 @@ public class MapTile {
     }
 
 
+  //**************************************************************************
+  //** lon
+  //**************************************************************************
+  /** Converts an x pixel value into longitude
+   */
+    protected double lon(int x){
+        return (ULx + ((double) x)/resX) - 180;
+    }
+
+  //**************************************************************************
+  //** lat
+  //**************************************************************************
+  /** Converts a y pixel value into latitude
+   */
+    protected double lat(int y){
+        return 90 - (ULy + ((double) y)/resY);
+    }
+
+
     private static final double originShift = 2.0 * Math.PI * 6378137.0 / 2.0; //20037508.34
 
   //**************************************************************************
@@ -540,10 +559,21 @@ public class MapTile {
     }
 
 
+  //**************************************************************************
+  //** tile2lon
+  //**************************************************************************
+  /** Returns the west tile coordinate
+   */
     public static double tile2lon(int x, int z) {
         return x / Math.pow(2.0, z) * 360.0 - 180;
     }
 
+
+  //**************************************************************************
+  //** tile2lat
+  //**************************************************************************
+  /** Returns the north tile coordinate
+   */
     public static double tile2lat(int y, int z) {
         double n = Math.PI - (2.0 * Math.PI * y) / Math.pow(2.0, z);
         return Math.toDegrees(Math.atan(Math.sinh(n)));
