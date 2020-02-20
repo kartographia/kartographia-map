@@ -217,6 +217,28 @@ public class MapTile {
 
 
   //**************************************************************************
+  //** isEmpty
+  //**************************************************************************
+  /** Returns true if this is a blank or empty tile (e.g. all pixels are
+   *  transparent)
+   */
+    public boolean isEmpty(){
+        for (int i=0; i<img.getWidth(); i++){
+            for (int j=0; j<img.getHeight(); j++){
+                Color color = img.getColor(i, j);
+                int r = color.getRed();
+                int g = color.getGreen();
+                int b = color.getBlue();
+                int a = color.getAlpha();
+                if (a>0) return false;
+
+            }
+        }
+        return true;
+    }
+
+
+  //**************************************************************************
   //** setBackgroundColor
   //**************************************************************************
     public void setBackgroundColor(int r, int g, int b){
@@ -509,15 +531,13 @@ public class MapTile {
             tiles.add(getTileCoordinate(point.getY(), point.getX(), z));
         }
         else{
-            Envelope box = geom.getEnvelopeInternal();
 
-            int[] ul = getTileCoordinate(box.getMaxY(), box.getMinX(), z);
-            int[] lr = getTileCoordinate(box.getMinY(), box.getMaxX(), z);
+            int[] arr = getTileExtents(geom, z);
 
-            int minX = ul[0];
-            int minY = ul[1];
-            int maxX = lr[0];
-            int maxY = lr[1];
+            int minX = arr[0];
+            int minY = arr[1];
+            int maxX = arr[2];
+            int maxY = arr[3];
 
 
             for (int y=minY; y<=maxY; y++){
@@ -530,6 +550,26 @@ public class MapTile {
             }
         }
         return tiles;
+    }
+
+
+  //**************************************************************************
+  //** getTileExtents
+  //**************************************************************************
+  /** Returns an array of integers representing the min/max tile coordinates
+   *  for a given geometry (minX, minY, maxX, maxY)
+   */
+    public static int[] getTileExtents(Geometry geom, int z){
+        Envelope box = geom.getEnvelopeInternal();
+        int[] ul = getTileCoordinate(box.getMaxY(), box.getMinX(), z);
+        int[] lr = getTileCoordinate(box.getMinY(), box.getMaxX(), z);
+
+        int minX = ul[0];
+        int minY = ul[1];
+        int maxX = lr[0]+1;
+        int maxY = lr[1]+1;
+
+        return new int[]{minX, minY, maxX, maxY};
     }
 
 
