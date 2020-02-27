@@ -44,11 +44,35 @@ public class MapTile {
     private static PrecisionModel precisionModel = new PrecisionModel();
     private static GeometryFactory geometryFactory = new GeometryFactory(precisionModel, 4326);
 
+
   //**************************************************************************
   //** Constructor
   //**************************************************************************
-    public MapTile(double minX, double minY, double maxX, double maxY,
-                     int width, int height, int srid){
+    public MapTile(double minX, double minY, double maxX, double maxY, int width, int height, int srid){
+        init(minX, minY, maxX, maxY, width, height, srid);
+    }
+
+
+  //**************************************************************************
+  //** Constructor
+  //**************************************************************************
+    public MapTile(int x, int y, int z, int size){
+        double north = tile2lat(y, z);
+        double south = tile2lat(y + 1, z);
+        double west = tile2lon(x, z);
+        double east = tile2lon(x + 1, z);
+        int srid = 3857;
+        double[] sw = get3857(south, west);
+        double[] ne = get3857(north, east);
+        init(sw[0], sw[1], ne[0], ne[1], size, size, srid);
+    }
+
+
+  //**************************************************************************
+  //** init
+  //**************************************************************************
+    private void init(double minX, double minY, double maxX, double maxY,
+        int width, int height, int srid){
 
 
 
@@ -136,6 +160,8 @@ public class MapTile {
         //applyQualityRenderingHints(g2d);
         g2d.setColor(Color.BLACK);
     }
+
+
 
 
   //**************************************************************************
@@ -314,13 +340,51 @@ public class MapTile {
 
 
   //**************************************************************************
+  //** addLine
+  //**************************************************************************
+  /** Used to add a polygon to the image
+   */
+    public void addLine(LineString lineString, Color lineColor){
+
+        Object[] obj = getCoordinates(lineString);
+        int[] xPoints = (int[]) obj[0];
+        int[] yPoints = (int[]) obj[1];
+        int numCoordinates = xPoints.length;
+
+        if (lineColor==null) lineColor = Color.black;
+        g2d.setColor(lineColor);
+        g2d.drawPolyline(xPoints, yPoints, numCoordinates);
+    }
+
+
+  //**************************************************************************
   //** addPolygon
   //**************************************************************************
   /** Used to add a polygon to the image
    */
     public void addPolygon(Polygon polygon, Color lineColor, Color fillColor){
 
-        Coordinate[] coordinates = polygon.getCoordinates();
+        Object[] obj = getCoordinates(polygon);
+        int[] xPoints = (int[]) obj[0];
+        int[] yPoints = (int[]) obj[1];
+        int numCoordinates = xPoints.length;
+
+        if (fillColor!=null){
+            g2d.setColor(fillColor);
+            g2d.fillPolygon(xPoints, yPoints, numCoordinates);
+        }
+        if (lineColor!=null){
+            g2d.setColor(lineColor);
+            g2d.drawPolyline(xPoints, yPoints, numCoordinates);
+        }
+    }
+
+    
+  //**************************************************************************
+  //** getCoordinates
+  //**************************************************************************
+    private Object[] getCoordinates(Geometry geom){
+        Coordinate[] coordinates = geom.getCoordinates();
         int[] xPoints = new int[coordinates.length];
         int[] yPoints = new int[coordinates.length];
 
@@ -347,18 +411,8 @@ public class MapTile {
             xPoints[i] = cint(x);
             yPoints[i] = cint(y);
         }
-
-
-        if (fillColor!=null){
-            g2d.setColor(fillColor);
-            g2d.fillPolygon(xPoints, yPoints, coordinates.length);
-        }
-        if (lineColor!=null){
-            g2d.setColor(lineColor);
-            g2d.drawPolyline(xPoints, yPoints, coordinates.length);
-        }
+        return new Object[]{xPoints, yPoints};
     }
-
 
 
   //**************************************************************************
@@ -619,6 +673,13 @@ public class MapTile {
         return Math.toDegrees(Math.atan(Math.sinh(n)));
     }
 
+
+    private double[] get3857(double lat, double lng) {
+        double x = lng * 20037508.34 / 180;
+        double y = Math.log(Math.tan((90 + lat) * Math.PI / 360)) / (Math.PI / 180);
+        y = y * 20037508.34 / 180;
+        return new double[] { x, y };
+    }
 
   //**************************************************************************
   //** getTileCoordinate
