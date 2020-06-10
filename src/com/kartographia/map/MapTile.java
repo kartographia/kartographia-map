@@ -379,7 +379,7 @@ public class MapTile {
         }
     }
 
-    
+
   //**************************************************************************
   //** getCoordinates
   //**************************************************************************
@@ -421,7 +421,17 @@ public class MapTile {
   /** Returns true if the tile intersects the given geometry.
    */
     public boolean intersects(String wkt) throws Exception {
-        return new WKTReader().read(wkt).intersects(getGeometry());
+        return intersects(new WKTReader().read(wkt));
+    }
+
+
+  //**************************************************************************
+  //** intersects
+  //**************************************************************************
+  /** Returns true if the tile intersects the given geometry.
+   */
+    public boolean intersects(Geometry geom) throws Exception {
+        return getGeometry().intersects(geom);
     }
 
 
@@ -673,13 +683,46 @@ public class MapTile {
         return Math.toDegrees(Math.atan(Math.sinh(n)));
     }
 
-
-    private double[] get3857(double lat, double lng) {
+  //**************************************************************************
+  //** get3857
+  //**************************************************************************
+  /** Returns the EPSG:3857 coordinate for a given lat, lon
+   */
+    public static double[] get3857(double lat, double lng) {
         double x = lng * 20037508.34 / 180;
         double y = Math.log(Math.tan((90 + lat) * Math.PI / 360)) / (Math.PI / 180);
         y = y * 20037508.34 / 180;
         return new double[] { x, y };
     }
+
+
+  //**************************************************************************
+  //** getTileCoordinate
+  //**************************************************************************
+  /** Returns the x,y coordinate of a map tile at another zoom level
+   */
+    public static int[] getTileCoordinate(int x, int y, int z, int n){
+
+        if (n==z){
+            return new int[]{x, y};
+        }
+        else if (n<z){
+            int d = z-n;
+            double m = Math.pow(2, d);
+
+            int x1 = (int) Math.floor(x/m);
+            int y1 = (int) Math.floor(y/m);
+            return new int[]{x1, y1};
+        }
+        else{
+            int d = n-z;
+            int m = (int) Math.pow(2, d);
+            int x1 = x*m;
+            int y1 = y*m;
+            return new int[]{x1, y1};
+        }
+    }
+
 
   //**************************************************************************
   //** getTileCoordinate
@@ -739,6 +782,14 @@ public class MapTile {
     public static double diff(double a, double b){
         double x = a-b;
         if (x<0) x = -x;
+        return x;
+    }
+
+    public static BigDecimal diff(BigDecimal a, BigDecimal b){
+        BigDecimal x = a.subtract(b);
+        if (x.compareTo(BigDecimal.ZERO) < 0){
+            x = x.negate();
+        }
         return x;
     }
 }
