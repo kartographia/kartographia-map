@@ -2,8 +2,10 @@ package com.kartographia.map;
 import com.vividsolutions.jts.geom.*;
 import com.vividsolutions.jts.io.WKTReader;
 import java.awt.Color;
+import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.Rectangle;
 import java.text.DecimalFormat;
 import java.math.BigDecimal;
 import java.util.*;
@@ -26,6 +28,7 @@ public class MapTile {
 
     protected javaxt.io.Image img;
     protected Graphics2D g2d;
+    private ArrayList<Rectangle> textboxes = new ArrayList<>();
 
     private String wkt;
     private double north;
@@ -276,6 +279,112 @@ public class MapTile {
 
 
   //**************************************************************************
+  //** addText
+  //**************************************************************************
+  /** Used to add a text to the image
+   */
+    public void addText(String text, double lat, double lon, MapStyle style){
+        if (text==null) return;
+        text = text.trim();
+
+
+
+      //Get FontMetrics
+        FontMetrics fm = g2d.getFontMetrics(style.getFont());
+
+
+      //Split text into lines as needed
+        ArrayList<String> lines = new ArrayList<>();
+        Integer textWrap = style.getTextWrap();
+        String[] arr = textWrap==null ? null : text.split(" ");
+        if (arr!=null && arr.length>1){
+            int nIndex = 0;
+            while ( nIndex < arr.length ){
+                String line = arr[nIndex++];
+                while ( ( nIndex < arr.length ) && (fm.stringWidth(line + " " + arr[nIndex]) < textWrap) ) {
+                    line = line + " " + arr[nIndex];
+                    nIndex++;
+                }
+                lines.add(line);
+            }
+        }
+        else{
+            lines.add(text);
+        }
+
+
+
+      //Set font and color
+        g2d.setColor(style.getColor());
+        g2d.setFont(style.getFont());
+
+
+      //Get center point
+        double[] xy = getXY(lat, lon);
+
+
+      //Get horizonal and vertical text alignment
+        String align = style.getTextAlign();
+        String valign = style.getTextVAlign();
+
+
+        ArrayList<Rectangle> rectangles = new ArrayList<>();
+        int y = cint(xy[1]);
+        for (int i=0; i<lines.size(); i++){
+            String line = lines.get(i);
+            int width = fm.stringWidth(line);
+            int height = fm.getHeight();
+            int descent = fm.getDescent();
+            height = height-descent;
+
+
+            int xOffset;
+            double x = xy[0];
+            if (align.equals("center")){
+                xOffset = cint(x-(width/2.0));
+            }
+            else if (align.equals("right")){
+                xOffset = cint(x-width);
+            }
+            else{
+                xOffset = cint(x);
+            }
+
+
+
+            int yOffset;
+            if (valign.equals("top")){
+                yOffset = y - ((i+1)*height);
+            }
+            else if (valign.equals("bottom")){
+                yOffset = y + ((i+1)*height);
+            }
+            else { //middle
+                int totalHeight = height*lines.size();
+                int yStart = y-cint(totalHeight/2.0);
+                yOffset = yStart + (height*(i+1));
+            }
+
+
+            Rectangle rect = new Rectangle(xOffset, yOffset, width, height);
+            for (Rectangle r : textboxes){
+                if (r.intersects(rect)) return;
+            }
+            rectangles.add(rect);
+        }
+
+
+        for (int i=0; i<lines.size(); i++){
+            String line = lines.get(i);
+            Rectangle rect = rectangles.get(i);
+            g2d.drawString(line, rect.x, rect.y);
+            textboxes.add(rect);
+        }
+
+    }
+
+
+  //**************************************************************************
   //** addPixel
   //**************************************************************************
   /** Used to add a pixel to the image
@@ -283,19 +392,9 @@ public class MapTile {
     public void addPixel(double lat, double lon, Color color){
 
       //Get center point
-        double x;
-        double y;
-        if (srid == 3857){
-            x = x(getX(lon));
-            y = y(getY(lat));
-        }
-        else if (srid == 4326){
-            x = x(lon);
-            y = y(lat);
-        }
-        else{
-            throw new IllegalArgumentException("Unsupported projection");
-        }
+        double[] xy = getXY(lat, lon);
+        double x = xy[0];
+        double y = xy[1];
 
         g2d.setColor(color);
         g2d.fillRect(cint(x), cint(y), 1, 1);
@@ -311,19 +410,9 @@ public class MapTile {
     public void addPoint(double lat, double lon, Color color, double size){
 
       //Get center point
-        double x;
-        double y;
-        if (srid == 3857){
-            x = x(getX(lon));
-            y = y(getY(lat));
-        }
-        else if (srid == 4326){
-            x = x(lon);
-            y = y(lat);
-        }
-        else{
-            throw new IllegalArgumentException("Unsupported projection");
-        }
+        double[] xy = getXY(lat, lon);
+        double x = xy[0];
+        double y = xy[1];
 
 
       //Get upper left coordinate
@@ -510,6 +599,27 @@ public class MapTile {
         else{
             throw new IllegalArgumentException("Unsupported projection");
         }
+    }
+
+
+  //**************************************************************************
+  //** getXY
+  //**************************************************************************
+    private double[] getXY(double lat, double lon){
+        double x;
+        double y;
+        if (srid == 3857){
+            x = x(getX(lon));
+            y = y(getY(lat));
+        }
+        else if (srid == 4326){
+            x = x(lon);
+            y = y(lat);
+        }
+        else{
+            throw new IllegalArgumentException("Unsupported projection");
+        }
+        return new double[]{x, y};
     }
 
 
