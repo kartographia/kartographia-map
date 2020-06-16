@@ -2,10 +2,13 @@ package com.kartographia.map;
 import com.vividsolutions.jts.geom.*;
 import com.vividsolutions.jts.io.WKTReader;
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.Rectangle;
+import java.awt.Shape;
+import java.awt.BasicStroke;
 import java.text.DecimalFormat;
 import java.math.BigDecimal;
 import java.util.*;
@@ -289,8 +292,15 @@ public class MapTile {
 
 
 
-      //Get FontMetrics
-        FontMetrics fm = g2d.getFontMetrics(style.getFont());
+      //Get font style
+        Font font = style.getFont();
+        FontMetrics fm = g2d.getFontMetrics(font);
+        Color fontColor = style.getColor();
+        Color borderColor = style.getBorderColor();
+        Float borderWidth = style.getBorderWidth();
+        String align = style.getTextAlign();
+        String valign = style.getTextVAlign();
+
 
 
       //Split text into lines as needed
@@ -314,20 +324,8 @@ public class MapTile {
 
 
 
-      //Set font and color
-        g2d.setColor(style.getColor());
-        g2d.setFont(style.getFont());
-
-
-      //Get center point
+      //Compute bounting rectangles for each line
         double[] xy = getXY(lat, lon);
-
-
-      //Get horizonal and vertical text alignment
-        String align = style.getTextAlign();
-        String valign = style.getTextVAlign();
-
-
         ArrayList<Rectangle> rectangles = new ArrayList<>();
         int y = cint(xy[1]);
         for (int i=0; i<lines.size(); i++){
@@ -374,10 +372,30 @@ public class MapTile {
         }
 
 
+
+
+      //Draw text
         for (int i=0; i<lines.size(); i++){
             String line = lines.get(i);
             Rectangle rect = rectangles.get(i);
-            g2d.drawString(line, rect.x, rect.y);
+
+            if (borderWidth!=null){
+                BasicStroke stroke = new BasicStroke(borderWidth);
+                float offset = borderWidth/2f;
+                Shape textShape = font.createGlyphVector(g2d.getFontRenderContext(), line).getOutline(rect.x-offset, rect.y-offset);
+                g2d.setColor(borderColor);
+                g2d.setStroke(stroke);
+                g2d.draw(textShape); // draw outline
+
+                g2d.setColor(fontColor);
+                g2d.fill(textShape); // fill the shape
+            }
+            else{
+                g2d.setColor(fontColor);
+                g2d.drawString(line, rect.x, rect.y);
+            }
+
+
             textboxes.add(rect);
         }
 
