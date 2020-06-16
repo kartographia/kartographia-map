@@ -15,6 +15,7 @@ public class MapStyle {
 
     private Color color;
     private Color borderColor;
+    private Float borderWidth;
     private Font font;
     private String align = "center";
     private String valign = "middle";
@@ -25,6 +26,7 @@ public class MapStyle {
         MapStyle style = new MapStyle();
         style.color = color;
         style.borderColor = borderColor;
+        style.borderWidth = borderWidth;
         style.font = font;
         style.align = align;
         style.valign = valign;
@@ -46,6 +48,15 @@ public class MapStyle {
 
     public Color getBorderColor(){
         return borderColor;
+    }
+
+    public void setBorderWidth(Float width){
+        if (width!=null && width<0) return;
+        borderWidth = width;
+    }
+
+    public Float getBorderWidth(){
+        return borderWidth;
     }
 
     public void setFont(String fontName, int fontSize){
