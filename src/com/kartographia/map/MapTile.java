@@ -284,7 +284,49 @@ public class MapTile {
   //**************************************************************************
   //** addText
   //**************************************************************************
-  /** Used to add a text to the image
+  /** Used to add text to the image. Note that the text is automatically
+   *  cropped to fit the map tile. Therefore, it is highly recommended to add
+   *  text from neighboring tiles. Also note that text blocks cannot overlap
+   *  or intersect one another. It is therefore recommended that text is added
+   *  in an orderly and consistent fashion across all tiles. For example,
+   *  consider sorting the text coordinates from east to west and north to
+   *  south. Example:
+   <pre>
+
+      //Create an array of labels/text to add to the map tile
+        ArrayList&lt;Object[]> labels = new ArrayList&lt;>();
+        //labels.add(new Object[]{text, lat, lon});
+
+
+      //Sort coordinates from nw to se
+        double[][] points = new double[labels.size()][2];
+        for (int i=0; i&lt;points.length; i++){
+            Object[] data = labels.get(i);
+            double lat = (double) data[1];
+            double lon = (double) data[2];
+            points[i] = new double[]{lon+180.0,lat+90.0};
+        }
+        Arrays.sort(points, new java.util.Comparator&lt;double[]>() {
+            public int compare(double[] a, double[] b) {
+                return Double.compare(a[0], b[0]);
+            }
+        });
+
+
+      //Render labels
+        for (int i=0; i&lt;points.length; i++){
+            double[] point = points[i];
+            double lon = point[0]-180.0;
+            double lat = point[1]-90.0;
+            for (Object[] data : labels){
+                if (isEqual(lat,(double) data[1]) && isEqual(lon,(double) data[2])){
+                    String name = (String) data[0];
+                    mapTile.addText(name, lat, lon, style);
+                    break;
+                }
+            }
+        }
+   </pre>
    */
     public void addText(String text, double lat, double lon, MapStyle style){
         if (text==null) return;
@@ -381,7 +423,7 @@ public class MapTile {
 
             if (borderWidth!=null){
                 BasicStroke stroke = new BasicStroke(borderWidth);
-                float offset = borderWidth/2f;
+                float offset = 0f; //borderWidth/2f;
                 Shape textShape = font.createGlyphVector(g2d.getFontRenderContext(), line).getOutline(rect.x-offset, rect.y-offset);
                 g2d.setColor(borderColor);
                 g2d.setStroke(stroke);
