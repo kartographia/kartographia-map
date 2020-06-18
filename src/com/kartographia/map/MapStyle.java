@@ -63,6 +63,10 @@ public class MapStyle {
         font = new Font(fontName, Font.TRUETYPE_FONT, fontSize);
     }
 
+    public void setFont(Font font){
+        this.font = font;
+    }
+
     public Font getFont(){
         return font;
     }
