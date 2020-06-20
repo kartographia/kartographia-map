@@ -336,6 +336,7 @@ public class MapTile {
 
       //Get font style
         Font font = style.getFont();
+        if (font==null) return;
         FontMetrics fm = g2d.getFontMetrics(font);
         Color fontColor = style.getColor();
         Color borderColor = style.getBorderColor();
@@ -665,7 +666,9 @@ public class MapTile {
   //**************************************************************************
   //** getXY
   //**************************************************************************
-    private double[] getXY(double lat, double lon){
+  /** Returns the x/y pixel coordinate for a given lat/lon coordinate
+   */
+    public double[] getXY(double lat, double lon){
         double x;
         double y;
         if (srid == 3857){
@@ -955,6 +958,12 @@ public class MapTile {
         return x;
     }
 
+
+  //**************************************************************************
+  //** diff
+  //**************************************************************************
+  /** Returns the difference between to numbers
+   */
     public static BigDecimal diff(BigDecimal a, BigDecimal b){
         BigDecimal x = a.subtract(b);
         if (x.compareTo(BigDecimal.ZERO) < 0){
@@ -962,4 +971,15 @@ public class MapTile {
         }
         return x;
     }
+
+
+  //**************************************************************************
+  //** isEqual
+  //**************************************************************************
+  /** Returns true if the two numbers are equal within 6 decimal places
+   */
+    public static boolean isEqual(double a, double b){
+        return (Math.abs(a - b) < .000001);
+    }
+
 }
