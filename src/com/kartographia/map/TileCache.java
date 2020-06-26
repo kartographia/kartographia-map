@@ -144,7 +144,12 @@ public class TileCache {
             dir.create();
 
             File tmp = new File(dir+"_temp", f.getName());
-            img.saveAs(tmp.toFile());
+            if (img==null){
+                tmp.create();
+            }
+            else{
+                img.saveAs(tmp.toFile());
+            }
             tmp.rename(tmp.getName()+".tmp");
             tmp.moveTo(dir);
             tmp.rename(f.getName());
