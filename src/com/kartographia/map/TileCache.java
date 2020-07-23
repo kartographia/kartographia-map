@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 //******************************************************************************
 /**
  *   Used to add and retrieve image tiles from a cache directory. Ensures
- *   that no two threads create the same image file
+ *   that no two threads create the same image file.
  *
  ******************************************************************************/
 
@@ -45,6 +45,9 @@ public class TileCache {
                         String key = it.next();
                         long lastRequest = requests.get(key);
                         if (currTime-lastRequest>maxAge){
+                            synchronized(tiles){
+                                tiles.remove(key);
+                            }
                             it.remove();
                             x++;
                         }
@@ -60,6 +63,29 @@ public class TileCache {
   //** getOrCreateTile
   //**************************************************************************
     public Tile getOrCreateTile(String key, ImageCreator imageCreator){
+        return getOrCreateTile(key, imageCreator, true);
+    }
+
+
+  //**************************************************************************
+  //** getOrCreateTile
+  //**************************************************************************
+  /** Returns a tile from the tile cache. If a tile does not exist, the
+   *  ImageCreator is used to create a new tile. By default, if the
+   *  ImageCreator produces an empty or null image, a 0 byte file is created
+   *  on disk. This is ideal for web mapping applications and provides a hint
+   *  that the tile request was received but the corresponding tile has no
+   *  data.
+   *  @param key Unique key that is used to find a tile in the cache. The
+   *  key is used to construct a file path. Typical keys follow the pattern
+   *  "{layer}/{z}/{x}/{y}". The getRelativePath() method can be used to
+   *  construct more elaborate paths using tile x,y,z coordinates.
+   *  @param imageCreator ImageCreator implementation that is used to create
+   *  image tiles.
+   *  @param saveEmptyTiles If true, creates empty (0 byte) files for empty
+   *  images (not recommended).
+   */
+    public Tile getOrCreateTile(String key, ImageCreator imageCreator, boolean saveEmptyTiles){
 
         synchronized(requests){
             requests.put(key, System.currentTimeMillis());
@@ -69,7 +95,7 @@ public class TileCache {
         synchronized(tiles){
             tile = tiles.get(key);
             if (tile==null){
-                tile = new Tile(key, tileCache);
+                tile = new Tile(key, tileCache, saveEmptyTiles);
                 tiles.put(key, tile);
             }
         }
@@ -110,6 +136,8 @@ public class TileCache {
   //**************************************************************************
   //** ImageCreator
   //**************************************************************************
+  /** Instances of this class are used to create image tiles
+   */
     public static interface ImageCreator {
         public Image create();
     }
@@ -124,8 +152,9 @@ public class TileCache {
         private List<File> file = new LinkedList<>();
         private List status = new LinkedList<>();
         private Directory tileCache;
+        private boolean saveEmptyTiles;
 
-        public Tile(String key, Directory tileCache){
+        public Tile(String key, Directory tileCache, boolean saveEmptyTiles){
             this.key = key;
             this.tileCache = tileCache;
             File f = getFile();
@@ -141,19 +170,27 @@ public class TileCache {
             File f = getFile();
             if (f.exists()) f.delete();
             Directory dir = f.getDirectory();
-            dir.create();
+
+
+            if (isEmpty(img)) img = null;
+
 
             File tmp = new File(dir+"_temp", f.getName());
             if (img==null){
-                tmp.create();
+                if (saveEmptyTiles){
+                    dir.create();
+                    tmp.create();
+                }
             }
             else{
+                dir.create();
                 img.saveAs(tmp.toFile());
             }
-            tmp.rename(tmp.getName()+".tmp");
-            tmp.moveTo(dir);
-            tmp.rename(f.getName());
-
+            if (tmp.exists()){
+                tmp.rename(tmp.getName()+".tmp");
+                tmp.moveTo(dir);
+                tmp.rename(f.getName());
+            }
 
             file.add(f);
             file.notifyAll();
@@ -161,6 +198,22 @@ public class TileCache {
             synchronized(status){
                 status.clear();
             }
+        }
+
+        private boolean isEmpty(Image img){
+            if (img!=null){
+                for (int i=0; i<img.getWidth(); i++){
+                    for (int j=0; j<img.getHeight(); j++){
+                        java.awt.Color color = img.getColor(i, j);
+                        int r = color.getRed();
+                        int g = color.getGreen();
+                        int b = color.getBlue();
+                        int a = color.getAlpha();
+                        if (a>0) return false;
+                    }
+                }
+            }
+            return true;
         }
 
         public File getFile(){
@@ -171,5 +224,24 @@ public class TileCache {
                 return file.get(0);
             }
         }
+    }
+
+
+  //**************************************************************************
+  //** getRelativePath
+  //**************************************************************************
+  /** Returns a string that can be used to construct a directory to store
+   *  image tiles. This method is designed to reduce the total number of
+   *  folders that would be required to store image tiles. You can use this
+   *  path as a key in the getOrCreateTile() method.
+   */
+    public static String getRelativePath(int x, int y, int z){
+        String path = "/" + z + "/";
+        if (z>=8){
+            int[] t = MapTile.getTileCoordinate(x, y, z, 8);
+            path += t[0] + "/" + t[1] + "/";
+        }
+        path += x + "/" + y;
+        return path;
     }
 }
