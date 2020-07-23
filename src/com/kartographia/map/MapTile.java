@@ -167,7 +167,15 @@ public class MapTile {
         g2d.setColor(Color.BLACK);
     }
 
-
+    
+  //**************************************************************************
+  //** clear
+  //**************************************************************************
+    public void clear(){
+        g2d.setBackground(new Color(0, 0, 0, 0));
+        g2d.clearRect(0, 0, img.getWidth(), img.getHeight());
+        g2d.setColor(Color.BLACK);
+    }
 
 
   //**************************************************************************
