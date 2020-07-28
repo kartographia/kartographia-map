@@ -134,6 +134,38 @@ public class TileCache {
 
 
   //**************************************************************************
+  //** removeTile
+  //**************************************************************************
+  /** Used to delete a tile from the cache
+   */
+    public void removeTile(String key){
+        synchronized(tiles){
+            Tile tile = tiles.get(key);
+            if (tile!=null){
+
+                synchronized(tile.file){
+                    while (tile.file.isEmpty()){
+                        try{
+                            tile.file.wait();
+                        }
+                        catch(Exception e){
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }
+
+                tile.getFile().delete();
+                tiles.remove(key);
+            }
+            else{
+                tile = new Tile(key, tileCache, false);
+                tile.getFile().delete();
+            }
+        }
+    }
+
+
+  //**************************************************************************
   //** ImageCreator
   //**************************************************************************
   /** Instances of this class are used to create image tiles
