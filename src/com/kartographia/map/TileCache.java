@@ -189,6 +189,7 @@ public class TileCache {
         public Tile(String key, Directory tileCache, boolean saveEmptyTiles){
             this.key = key;
             this.tileCache = tileCache;
+            this.saveEmptyTiles = saveEmptyTiles;
             File f = getFile();
             if (f.exists()){
                 synchronized(file){
@@ -202,7 +203,7 @@ public class TileCache {
             File f = getFile();
             if (f.exists()) f.delete();
             Directory dir = f.getDirectory();
-
+            dir.create();
 
             if (isEmpty(img)) img = null;
 
@@ -210,14 +211,13 @@ public class TileCache {
             File tmp = new File(dir+"_temp", f.getName());
             if (img==null){
                 if (saveEmptyTiles){
-                    dir.create();
                     tmp.create();
                 }
             }
             else{
-                dir.create();
                 img.saveAs(tmp.toFile());
             }
+
             if (tmp.exists()){
                 tmp.rename(tmp.getName()+".tmp");
                 tmp.moveTo(dir);
