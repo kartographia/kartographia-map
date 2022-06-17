@@ -8,6 +8,7 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.Rectangle;
 import java.awt.Shape;
+import java.awt.Stroke;
 import java.awt.BasicStroke;
 import java.text.DecimalFormat;
 import java.math.BigDecimal;
@@ -167,7 +168,7 @@ public class MapTile {
         g2d.setColor(Color.BLACK);
     }
 
-    
+
   //**************************************************************************
   //** clear
   //**************************************************************************
@@ -282,8 +283,12 @@ public class MapTile {
   //** setBackgroundColor
   //**************************************************************************
     public void setBackgroundColor(int r, int g, int b){
+        setBackgroundColor(new Color(r,g,b));
+    }
+
+    public void setBackgroundColor(Color color){
         Color org = g2d.getColor();
-        g2d.setColor(new Color(r,g,b));
+        g2d.setColor(color);
         g2d.fillRect(0,0,img.getWidth(),img.getHeight());
         g2d.setColor(org);
     }
@@ -502,16 +507,23 @@ public class MapTile {
   //**************************************************************************
   /** Used to add a polygon to the image
    */
-    public void addLine(LineString lineString, Color lineColor){
+    public void addLine(LineString lineString, Color lineColor, Stroke lineStyle){
 
         Object[] obj = getCoordinates(lineString);
         int[] xPoints = (int[]) obj[0];
         int[] yPoints = (int[]) obj[1];
         int numCoordinates = xPoints.length;
 
+        Stroke org = g2d.getStroke();
+        if (lineStyle!=null) g2d.setStroke(lineStyle);
         if (lineColor==null) lineColor = Color.black;
         g2d.setColor(lineColor);
         g2d.drawPolyline(xPoints, yPoints, numCoordinates);
+        g2d.setStroke(org);
+    }
+
+    public void addLine(LineString lineString, Color lineColor){
+        addLine(lineString, lineColor, null);
     }
 
 
@@ -520,7 +532,7 @@ public class MapTile {
   //**************************************************************************
   /** Used to add a polygon to the image
    */
-    public void addPolygon(Polygon polygon, Color lineColor, Color fillColor){
+    public void addPolygon(Polygon polygon, Color lineColor, Stroke lineStyle, Color fillColor){
 
         Object[] obj = getCoordinates(polygon);
         int[] xPoints = (int[]) obj[0];
@@ -532,9 +544,16 @@ public class MapTile {
             g2d.fillPolygon(xPoints, yPoints, numCoordinates);
         }
         if (lineColor!=null){
+            Stroke org = g2d.getStroke();
+            if (lineStyle!=null) g2d.setStroke(lineStyle);
             g2d.setColor(lineColor);
             g2d.drawPolyline(xPoints, yPoints, numCoordinates);
+            g2d.setStroke(org);
         }
+    }
+
+    public void addPolygon(Polygon polygon, Color lineColor, Color fillColor){
+        addPolygon(polygon, lineColor, null, fillColor);
     }
 
 
