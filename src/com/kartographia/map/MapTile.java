@@ -534,20 +534,66 @@ public class MapTile {
    */
     public void addPolygon(Polygon polygon, Color lineColor, Stroke lineStyle, Color fillColor){
 
-        Object[] obj = getCoordinates(polygon);
+
+      //Get outer coordinates of the polygon
+        Object[] obj;
+        if (polygon.getNumInteriorRing()==0){
+            obj = getCoordinates(polygon);
+        }
+        else{
+            obj = getCoordinates(polygon.getExteriorRing());
+        }
         int[] xPoints = (int[]) obj[0];
         int[] yPoints = (int[]) obj[1];
         int numCoordinates = xPoints.length;
 
+
+
+      //Save outer coordinates into a list of rings
+        ArrayList<Object[]> rings = null;
+        if (lineColor!=null){
+            rings = new ArrayList<>();
+            rings.add(obj);
+        }
+
+
+
+      //Create area
+        java.awt.geom.Area area = new java.awt.geom.Area(new java.awt.Polygon(xPoints, yPoints, numCoordinates));
+
+
+      //Remove holes
+        for (int i=0; i<polygon.getNumInteriorRing(); i++){
+            obj = getCoordinates(polygon.getInteriorRingN(i));
+            if (rings!=null) rings.add(obj);
+            xPoints = (int[]) obj[0];
+            yPoints = (int[]) obj[1];
+            numCoordinates = xPoints.length;
+            area.subtract(new java.awt.geom.Area(new java.awt.Polygon(xPoints, yPoints, numCoordinates)));
+        }
+
+
+
+      //Fill area
         if (fillColor!=null){
             g2d.setColor(fillColor);
-            g2d.fillPolygon(xPoints, yPoints, numCoordinates);
+            g2d.fill(area);
         }
+
+
+      //Draw outer rings
         if (lineColor!=null){
             Stroke org = g2d.getStroke();
             if (lineStyle!=null) g2d.setStroke(lineStyle);
             g2d.setColor(lineColor);
-            g2d.drawPolyline(xPoints, yPoints, numCoordinates);
+
+            for (Object[] ring : rings){
+                xPoints = (int[]) ring[0];
+                yPoints = (int[]) ring[1];
+                numCoordinates = xPoints.length;
+                g2d.drawPolyline(xPoints, yPoints, numCoordinates);
+            }
+
             g2d.setStroke(org);
         }
     }
